@@ -164,6 +164,17 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .kr .to { color: var(--accent); } .kr small { color: var(--muted); font-size: .75rem; }
 .notes { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
 .notes ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; max-width: 74ch; }
+/* Jump bar: stays at the top so the long page is one tap away from each section */
+.jump { position: sticky; top: 0; z-index: 5; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; margin: -12px -16px 0; padding: 8px 16px; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.jump a { flex: none; padding: 4px 12px; border-radius: 999px; color: var(--muted); text-decoration: none; font-size: .85rem; border: 1px solid var(--line); }
+.jump a:hover, .jump a:focus-visible { color: var(--fg); border-color: var(--accent); }
+section { scroll-margin-top: 56px; }
+.stale { color: var(--sell); font-weight: 600; }
+/* Watchlist star (saved in this browser only) */
+.star { font: inherit; background: none; border: 0; padding: 0 6px 0 0; cursor: pointer; color: var(--muted); font-size: 1rem; line-height: 1; vertical-align: baseline; }
+.star[aria-pressed="true"] { color: var(--r-unique); }
+.star:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.searching { margin: 0 0 8px; font-size: .8rem; color: var(--accent); }
 footer { color: var(--muted); font-size: .78rem; }
 footer a, .notes a { color: var(--accent); }
 @media (prefers-reduced-motion: no-preference) { .item[open] .detail, .craft details[open] .steps { animation: fade .18s ease-out; } @keyframes fade { from { opacity: 0; } } }
@@ -185,11 +196,24 @@ footer a, .notes a { color: var(--accent); }
       <li><b>様子を見る</b> = 先行サーバー(アリエルより数日早く始まった3つのサーバー)で値段が大きく動いた物。数日後にアリエルでも同じ動きが来やすい</li>
       <li><b>自鯖3日</b> = アリエルの3日前からの値段の上下。<b>他鯖3日</b> = アジアの他の6サーバーの3日の上下(真ん中の値)。両方を比べると、アリエルだけの動きか、全サーバーの動きかが分かります</li>
       <li>名前の色はレアリティ。行を押すと、詳しい数字が開きます</li>
+      <li>名前の前の <b>☆</b> を押すと、一番上の「気になる品」に並びます(この端末のブラウザにだけ保存されます)</li>
     </ul>
     <div class="legend"><b>レアリティ</b><span class="r-一般">一般</span><span class="r-希少">希少</span><span class="r-伝承">伝承</span><span class="r-唯一">唯一</span></div>
   </details>
 
-  <section aria-labelledby="h-answer">
+  <nav class="jump" aria-label="このページの中">
+    <a href="#s-watch">★ 気になる品</a><a href="#s-answer">今日の結論</a><a href="#s-craft">作るか買うか</a><a href="#s-fc">今後の予想</a><a href="#s-list">品目ごとの相場</a>
+  </nav>
+
+  <section id="s-watch" aria-labelledby="h-watch">
+    <header><h2 id="h-watch">★ 気になる品</h2><p>☆を押した品がここに並びます(この端末のブラウザにだけ保存)。最初は製作でよく使う素材を入れてあります</p></header>
+    <div class="list">
+      <div class="head"><span>名前</span><span>今の値段</span><span>自鯖 3日</span><span>他鯖 3日</span><span>他サーバーより</span><span>3日の動き</span><span>判断</span></div>
+      <div id="watch"></div>
+    </div>
+  </section>
+
+  <section id="s-answer" aria-labelledby="h-answer">
     <header><h2 id="h-answer">今日の結論</h2><p>ロングソード・ガーダー・リング・ネックレスと、その素材から選んでいます(出品が3件以上ある物だけ)</p></header>
     <div class="board">
       <div class="col buy"><h3>今買う</h3><p>3日でアリエルだけ下がった・他サーバーより安い</p><div id="pick-buy"></div></div>
@@ -198,13 +222,13 @@ footer a, .notes a { color: var(--accent); }
     </div>
   </section>
 
-  <section aria-labelledby="h-craft">
+  <section id="s-craft" aria-labelledby="h-craft">
     <header><h2 id="h-craft">装備は作るか買うか</h2>
       <p>光る装備が出る確率は25%として、各段階を4回作って光る物を1つ作り、次の段階に進む計算です。製作の失敗と、外れた3個の売値は入れていません。</p></header>
     <div class="crafts" id="crafts"></div>
   </section>
 
-  <section aria-labelledby="h-fc">
+  <section id="s-fc" aria-labelledby="h-fc">
     <header><h2 id="h-fc">今後の予想</h2>
       <p>数日の予想はデータから毎時自動で作っています。1か月の予想は、韓国版で同じ時期に実際にあった動きです。どちらも当たる保証はありません。判断の材料のひとつにしてください。</p></header>
     <p class="fc-sub">数日の予想(自分が作る物)</p>
@@ -220,8 +244,8 @@ footer a, .notes a { color: var(--accent); }
     <div class="fc" id="forecast"></div>
   </section>
 
-  <section aria-labelledby="h-list">
-    <header><h2 id="h-list">品目ごとの相場</h2><p>行を押すと、他のサーバーの値段などが見られます</p></header>
+  <section id="s-list" aria-labelledby="h-list">
+    <header><h2 id="h-list">品目ごとの相場</h2><p>行を押すと、他のサーバーの値段などが見られます。名前で探すと、区分に関係なく全部から探します</p></header>
     <nav class="tabs" role="tablist" aria-label="区分">
       <button class="tab" role="tab" data-tab="製作武器">製作武器</button>
       <button class="tab" role="tab" data-tab="製作装飾品">製作装飾品</button>
@@ -242,6 +266,7 @@ footer a, .notes a { color: var(--accent); }
         </select>
         <input type="search" id="f-q" placeholder="名前で探す" aria-label="名前で探す">
       </div>
+      <p class="searching" id="f-note" hidden></p>
       <div class="list">
         <div class="head"><span>名前</span><span>今の値段</span><span>自鯖 3日</span><span>他鯖 3日</span><span>他サーバーより</span><span>3日の動き</span><span>判断</span></div>
         <div id="items"></div>
@@ -252,7 +277,7 @@ footer a, .notes a { color: var(--accent); }
 
     <div id="pane-help" class="notes" hidden>
       <ul>
-        <li>値段は取引所の最安の出品価格(実際に売れた値段ではない)。<a href="https://aion2.exchange/" target="_blank" rel="noopener">Aion2Market</a> から6時間ごとに自動で取得</li>
+        <li>値段は取引所の最安の出品価格(実際に売れた値段ではない)。<a href="https://aion2.exchange/" target="_blank" rel="noopener">Aion2Market</a> から自動で取得。アリエルは新しいデータが出るたび(1時間ごと。GitHub の都合で数時間あくことがある)、他のサーバーは6時間ごと</li>
         <li><b>自鯖 3日</b>: アリエルの今の値段と3日前の値段の差。<b>他鯖 3日</b>: アジアの他の6サーバーそれぞれの3日の差の、真ん中の値(6時間ごとに取り直す)</li>
         <li><b>他サーバーより</b>: アジアの他のサーバー(先行サーバーを除く6つ)の値段の真ん中との差。マイナスはアリエルのほうが安い</li>
         <li><b>買い時</b>: 3日で15%以上下がり、しかも他鯖の3日より10ポイント以上大きく下がった物(全サーバーで下がっている物は相場全体の下落なので除く)。または他サーバーより20%以上安い物。もう一方で高い物と、先行サーバーで下がっている物は除く</li>
@@ -267,7 +292,7 @@ footer a, .notes a { color: var(--accent); }
     </div>
   </section>
 
-  <footer>データ: Aion2Market ・ 6時間ごとに自動更新 ・ 名前は日本語版のゲームデータ(questlog.gg・GameWith)で確認。「(仮)」は未確認</footer>
+  <footer>データ: Aion2Market ・ アリエルは1時間ごと、他サーバーは6時間ごとに自動更新 ・ 名前は日本語版のゲームデータ(questlog.gg・GameWith)で確認</footer>
 </main>
 
 <script>
@@ -292,10 +317,16 @@ footer a, .notes a { color: var(--accent); }
     (r.section === '素材' ? r.price >= 1e4 || /Refining Stone/.test(r.name_en) : r.price >= 1e5);
 
   function timeText(iso) {
-    const d = new Date(iso); if (isNaN(d)) return 'データの時刻が分かりません';
+    const d = new Date(iso); if (isNaN(d)) return ['データの時刻が分かりません', 0];
     const j = new Date(d.getTime() + 9 * 3600e3), p = (n) => String(n).padStart(2, '0');
     const h = Math.max(0, Math.round((Date.now() - d) / 3600e3));
-    return `データの時刻: ${j.getUTCMonth() + 1}/${j.getUTCDate()} ${p(j.getUTCHours())}:${p(j.getUTCMinutes())}(日本時間、${h < 1 ? '1時間以内' : h + '時間前'})`;
+    return [`データの時刻: ${j.getUTCMonth() + 1}/${j.getUTCDate()} ${p(j.getUTCHours())}:${p(j.getUTCMinutes())}(日本時間、${h < 1 ? '1時間以内' : h + '時間前'})`, h];
+  }
+  // Updates normally land every hour; flag the page when they have stalled.
+  function showTime(iso) {
+    const [text, h] = timeText(iso), box = $('#time');
+    box.replaceChildren(text);
+    if (h >= 4) box.append(' ', el('span', 'stale', '更新が遅れています。値段が今と違うかもしれません'));
   }
 
   function spark(s, W = 84, H = 24) {
@@ -478,10 +509,55 @@ footer a, .notes a { color: var(--accent); }
     return d;
   }
 
+  // Watchlist: item keys saved in this browser. First visit starts with the materials most crafts need
+  // (wrath materials, sparkling ore/odian, refining stones).
+  const DEFAULT_WATCH = ['610511013', '610511014', '610511015', '610620016', '610610016', '610530010', '610530008'];
+  let WATCH;
+  try { WATCH = new Set(JSON.parse(localStorage.getItem('watch')) || DEFAULT_WATCH); } catch (e) { WATCH = new Set(DEFAULT_WATCH); }
+  const saveWatch = () => { try { localStorage.setItem('watch', JSON.stringify([...WATCH])); } catch (e) {} };
+
+  function starButton(r) {
+    const b = el('button', 'star');
+    const set = () => { const on = WATCH.has(String(r.key)); b.textContent = on ? '★' : '☆'; b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-label', (on ? '気になる品から外す: ' : '気になる品に入れる: ') + r.name); };
+    set();
+    // The star sits inside <summary>, so stop the click from opening the row.
+    b.addEventListener('click', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      const k = String(r.key); WATCH.has(k) ? WATCH.delete(k) : WATCH.add(k); saveWatch();
+      drawWatch(); drawList();
+    });
+    return b;
+  }
+
+  // One expandable row, used by the full list and the watchlist.
+  function itemRow(r, showSection) {
+    const det = el('details', 'item'), s = el('summary');
+    const nm = name(r); nm.prepend(starButton(r));
+    nm.append(el('small', '', (showSection ? r.section + ' ・ ' : '') + r.kind + (r.listings ? ` ・ 出品${r.listings}件` : ' ・ 出品なし')));
+    const pc = el('span', 'pc'); pc.append(el('span', 'pill ' + r.verdict, r.verdict));
+    if (r.fc_short) pc.append(el('small', '', `数日${ARROW[r.fc_short]} 1か月${ARROW[r.fc_mid] || '-'}`));
+    const sp = el('span', 'sp'); sp.append(spark(r.spark));
+    s.append(nm, el('span', 'r num p', gina(r.price)), el('span', 'r num c3 ' + tone(r.ch3), pct(r.ch3)), el('span', 'r num o3 ' + tone(r.asia_ch3), pct(r.asia_ch3)), el('span', 'r num va ' + tone(r.vs_asia), pct(r.vs_asia)), sp, pc);
+    det.append(s);
+    det.addEventListener('toggle', () => { if (det.open && det.children.length === 1) det.append(detail(r)); });
+    return det;
+  }
+
   let ITEMS = [], tab = '製作武器';
+  function drawWatch() {
+    const box = $('#watch'); box.replaceChildren();
+    const rows = ITEMS.filter((r) => WATCH.has(String(r.key))).sort((a, b) => a.section.localeCompare(b.section, 'ja') || (b.price || 0) - (a.price || 0));
+    if (!rows.length) { box.append(el('div', 'empty', '☆を押した品がここに並びます。下の「品目ごとの相場」の名前の前の ☆ を押してください')); return; }
+    for (const r of rows) box.append(itemRow(r, true));
+  }
+
   function drawList() {
     const mine = $('#f-mine').checked, big = $('#f-big').checked, q = $('#f-q').value.trim().toLowerCase(), sort = $('#f-sort').value;
-    let rows = ITEMS.filter((r) => r.section === tab && (!mine || r.mine) && (!big || (tab === '素材' ? r.listings > 0 : isNum(r.price) && r.price >= 1e5)) && (!q || (r.name + ' ' + r.name_en).toLowerCase().includes(q)));
+    // A name search looks through every section and ignores the check boxes, so nothing is hidden by accident.
+    let rows = q
+      ? ITEMS.filter((r) => (r.name + ' ' + r.name_en).toLowerCase().includes(q))
+      : ITEMS.filter((r) => r.section === tab && (!mine || r.mine) && (!big || (tab === '素材' ? r.listings > 0 : isNum(r.price) && r.price >= 1e5)));
+    const note = $('#f-note'); note.hidden = !q; note.textContent = q ? `「${$('#f-q').value.trim()}」を全部の区分から探しています(${rows.length}件)` : '';
     const nz = (v) => (isNum(v) ? v : 1e9);
     rows.sort({
       verdict: (a, b) => (ORDER[a.verdict] - ORDER[b.verdict]) || ((b.tier || 0) - (a.tier || 0)) || a.name.localeCompare(b.name, 'ja'),
@@ -490,18 +566,8 @@ footer a, .notes a { color: var(--accent); }
       price: (a, b) => (isNum(b.price) ? b.price : -1) - (isNum(a.price) ? a.price : -1),
     }[sort]);
     const box = $('#items'); box.replaceChildren();
-    if (!rows.length) { box.append(el('div', 'empty', '条件に合う物はありません。上のチェックを外すと増えます')); return; }
-    for (const r of rows) {
-      const det = el('details', 'item'), s = el('summary');
-      const nm = name(r); nm.append(el('small', '', r.kind + (r.listings ? ` ・ 出品${r.listings}件` : ' ・ 出品なし')));
-      const pc = el('span', 'pc'); pc.append(el('span', 'pill ' + r.verdict, r.verdict));
-      if (r.fc_short) pc.append(el('small', '', `数日${ARROW[r.fc_short]} 1か月${ARROW[r.fc_mid] || '-'}`));
-      const sp = el('span', 'sp'); sp.append(spark(r.spark));
-      s.append(nm, el('span', 'r num p', gina(r.price)), el('span', 'r num c3 ' + tone(r.ch3), pct(r.ch3)), el('span', 'r num o3 ' + tone(r.asia_ch3), pct(r.asia_ch3)), el('span', 'r num va ' + tone(r.vs_asia), pct(r.vs_asia)), sp, pc);
-      det.append(s);
-      det.addEventListener('toggle', () => { if (det.open && det.children.length === 1) det.append(detail(r)); });
-      box.append(det);
-    }
+    if (!rows.length) { box.append(el('div', 'empty', q ? '名前に合う物はありません' : '条件に合う物はありません。上のチェックを外すと増えます')); return; }
+    for (const r of rows) box.append(itemRow(r, !!q));
   }
 
   function drawKorea(rows) {
@@ -532,15 +598,16 @@ footer a, .notes a { color: var(--accent); }
     const box = $('#fc-check');
     if (!c || !c.pairs) { box.textContent = '予想の当たり外れ: 記録を始めたところです。3日後から数え始めます'; return; }
     const rate = (hit, n) => (n ? `${hit}/${n}回(${Math.round((hit / n) * 100)}%)` : 'まだなし');
-    box.textContent = `これまでの当たり(3日後の値段で判定。±3%が境目): 上がる ${rate(c.up_hit, c.up_n)} ・ 下がる ${rate(c.down_hit, c.down_n)} ・ 横ばい ${rate(c.flat_hit, c.flat_n)}`;
+    const hit = c.up_hit + c.down_hit + c.flat_hit, n = c.up_n + c.down_n + c.flat_n;
+    box.textContent = `これまでの当たり ${rate(hit, n)}(3日後の値段で判定。±3%が境目): 上がる ${rate(c.up_hit, c.up_n)} ・ 下がる ${rate(c.down_hit, c.down_n)} ・ 横ばい ${rate(c.flat_hit, c.flat_n)}`;
   }
 
   const load = (f) => fetch('data/' + f + '?t=' + Date.now()).then((r) => { if (!r.ok) throw new Error(f + ' ' + r.status); return r.json(); });
   Promise.all([load('items.json'), load('crafts.json'), load('korea_taiwan.json')]).then(([it, cr, kr]) => {
     ITEMS = it.rows;
-    $('#time').textContent = timeText((it.meta && it.meta.captured_at) || (ITEMS[0] && ITEMS[0].captured_at));
+    showTime((it.meta && it.meta.captured_at) || (ITEMS[0] && ITEMS[0].captured_at));
     FORECAST = kr.forecast || [];
-    drawBoard(ITEMS); drawCrafts(cr.rows); drawShortForecast(ITEMS); drawCheck(it.meta && it.meta.forecast_check); drawStones(ITEMS); drawForecast(); drawKorea(kr.rows);
+    drawWatch(); drawBoard(ITEMS); drawCrafts(cr.rows); drawShortForecast(ITEMS); drawCheck(it.meta && it.meta.forecast_check); drawStones(ITEMS); drawForecast(); drawKorea(kr.rows);
     let saved = null; try { saved = localStorage.getItem('tab'); } catch (e) {}
     show(saved && document.querySelector(`.tab[data-tab="${saved}"]`) ? saved : '製作武器');
   }).catch((e) => { $('#time').textContent = 'データを読み込めませんでした(' + e.message + ')。少し待って再読み込みしてください'; });
