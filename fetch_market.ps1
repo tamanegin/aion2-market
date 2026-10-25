@@ -163,7 +163,10 @@ if (-not $doFull) {
         return
     }
 }
-$fetchServers = if ($doFull) { $servers } else { @($servers | Where-Object { $_.server_id -eq $HomeServer }) }
+# The home server goes first, so an API outage shows up on the first calls instead of after
+# every other server has used up its retries.
+$homeOnly = @($servers | Where-Object { $_.server_id -eq $HomeServer })
+$fetchServers = if ($doFull) { $homeOnly + @($servers | Where-Object { $_.server_id -ne $HomeServer }) } else { $homeOnly }
 
 $sections = 'weapons', 'accessories', 'materials'
 function Test-Wanted([string]$sec, $it) {
@@ -179,13 +182,21 @@ function Test-Wanted([string]$sec, $it) {
 # --- Collect prices ----------------------------------------------------------------------
 $obs = @{}
 $skipped = @()
+$failStreak = 0
 $capturedAt = $null
 foreach ($s in $fetchServers) {
     $g = Get-Group $s
     foreach ($sec in $sections) {
         # Another server failing only drops it from the comparison; the home server must load.
-        try { $r = Get-Api "items?section=$sec&server=$($s.server_id)&offset=0&limit=500&window=7d" }
-        catch { if ($g -eq 'home') { throw }; $skipped += "$($s.server_id)/$sec"; continue }
+        # Several failures in a row mean the API is down: each one costs minutes of retries, and a
+        # run that hits the job timeout also holds up the next runs, so stop and keep the site as is.
+        try { $r = Get-Api "items?section=$sec&server=$($s.server_id)&offset=0&limit=500&window=7d"; $failStreak = 0 }
+        catch {
+            if ($g -eq 'home') { throw }
+            $skipped += "$($s.server_id)/$sec"; $failStreak++
+            if ($failStreak -ge 3) { throw "API failed $failStreak times in a row; stopping and keeping the previous data" }
+            continue
+        }
         foreach ($it in $r.items) {
             if (-not (Test-Wanted $sec $it)) { continue }
             $k = [string]$it.item_key
