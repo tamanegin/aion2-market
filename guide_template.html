@@ -15,9 +15,10 @@
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.7 var(--font); }
+html { font-size: var(--fs, 16px); }
+body { margin: 0; background: var(--bg); color: var(--fg); font: .9375rem/1.75 var(--font); }
 a { color: var(--accent); }
-.wrap { max-width: 1060px; margin: 0 auto; padding-block: 16px 64px;
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 16px 64px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .site { display: flex; gap: 6px; margin-bottom: 14px; }
 .site a { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); text-decoration: none; font-size: .9rem; }
@@ -30,14 +31,36 @@ h1.title { margin: 0; font-size: 1.6rem; letter-spacing: .03em; }
 .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: thin; padding-bottom: 2px; }
 .tabs button { flex: none; font: inherit; font-size: .9rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
 .tabs button[aria-selected="true"] { background: var(--panel2); border-color: var(--accent); color: var(--accent); font-weight: 700; }
-.search { display: flex; gap: 8px; }
+.search { display: flex; gap: 8px; align-items: center; }
+.fs { display: flex; flex: none; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.fs button { font: inherit; font-size: .8rem; color: var(--muted); background: var(--panel); border: 0; padding: 8px 10px; cursor: pointer; }
+.fs button[aria-pressed="true"] { background: var(--panel2); color: var(--accent); font-weight: 700; }
 .search input { flex: 1; min-width: 0; font: inherit; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
 .search input:focus { outline: 2px solid var(--accent); outline-offset: 0; }
 
-/* Table of contents for the open document */
-.toc { margin: 14px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
-.toc a { font-size: .8rem; text-decoration: none; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; }
-.toc a:hover { color: var(--fg); border-color: var(--muted); }
+/* Two columns on wide screens: chapter list on the left, the note on the right */
+.layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 28px; }
+.layout > main { min-width: 0; }
+.tocbox { margin: 12px 0 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.tocbox > summary { cursor: pointer; padding: 8px 12px; font-size: .85rem; font-weight: 700; color: var(--muted); }
+.toc { display: grid; padding: 0 6px 8px; }
+.toc a { display: block; font-size: .82rem; line-height: 1.45; text-decoration: none; color: var(--muted); padding: 4px 8px; border-left: 2px solid transparent; border-radius: 0 4px 4px 0; }
+.toc a.sub { padding-left: 20px; font-size: .76rem; }
+.toc a:hover { color: var(--fg); background: var(--panel2); }
+.toc a.here { color: var(--accent); border-left-color: var(--accent); background: var(--panel2); font-weight: 600; }
+@media (min-width: 980px) {
+  .layout { grid-template-columns: 250px minmax(0, 1fr); }
+  .side { position: sticky; top: 112px; align-self: start; max-height: calc(100vh - 124px); overflow-y: auto; scrollbar-width: thin; }
+  .tocbox > summary { pointer-events: none; list-style: none; }
+}
+
+/* "Recently added" counter with a jump button */
+.newnav { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 12px 0 0; font-size: .85rem; color: var(--muted); }
+.newnav button { font: inherit; font-size: .8rem; color: var(--gold); background: var(--gold-bg); border: 1px solid var(--gold); border-radius: 999px; padding: 3px 12px; cursor: pointer; }
+
+/* Sources and other long reference sections start folded */
+details.fold { margin: 8px 0 12px; }
+details.fold > summary { cursor: pointer; color: var(--accent); font-size: .88rem; }
 
 /* Rendered markdown */
 .doc { margin-top: 8px; }
@@ -57,7 +80,12 @@ h1.title { margin: 0; font-size: 1.6rem; letter-spacing: .03em; }
 .doc th, .doc td { padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; min-width: 6em; }
 .doc th { background: var(--panel2); color: var(--muted); font-weight: 600; white-space: nowrap; }
 .doc tr:last-child td { border-bottom: 0; }
-.doc tbody tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+.doc tbody td { background: var(--bg); }
+.doc tbody tr:nth-child(even) td { background: #131822; }
+/* Keep the first column (the row's name) in view while a wide table scrolls sideways */
+.doc th:first-child, .doc td:first-child { position: sticky; left: 0; z-index: 1; box-shadow: 1px 0 0 var(--line); }
+.doc td:first-child { font-weight: 600; }
+.doc tbody tr:hover td { background: #1a2030; }
 .doc a.tab-link { cursor: pointer; }
 
 /* Search results */
@@ -74,7 +102,6 @@ mark { background: var(--mark); color: #fff; border-radius: 2px; padding: 0 1px;
 /* Dates written in the notes that fall within a few days of the build get a "new" mark */
 .new { background: var(--gold-bg); color: var(--gold); border-radius: 4px; padding: 0 4px; font-weight: 600; }
 .new::before { content: "新 "; font-size: .78em; }
-.legend-new { font-size: .8rem; color: var(--muted); margin: 6px 0 0; }
 .totop { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); z-index: 6; font: inherit; font-size: .85rem; color: var(--fg); background: var(--panel2); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,.4); }
 .totop:hover, .totop:focus-visible { border-color: var(--accent); outline: none; }
 </style>
@@ -87,13 +114,22 @@ mark { background: var(--mark); color: #fff; border-radius: 2px; padding: 0 1px;
 
   <div class="bar">
     <div class="tabs" role="tablist" aria-label="まとめ"></div>
-    <div class="search"><input id="q" type="search" placeholder="全部のまとめから探す(例: 審判、怒りの思念、覚醒戦)" aria-label="検索"></div>
+    <div class="search">
+      <input id="q" type="search" placeholder="全部のまとめから探す(例: 審判、怒りの思念、覚醒戦)" aria-label="検索">
+      <div class="fs" role="group" aria-label="文字の大きさ"><button type="button" data-fs="14px">小</button><button type="button" data-fs="16px">中</button><button type="button" data-fs="18px">大</button></div>
+    </div>
   </div>
 
-  <nav class="toc" aria-label="この中の章"></nav>
-  <p class="legend-new" hidden><span class="new">日付</span> の印は、最近足した所です</p>
-  <article class="doc"></article>
-  <div class="results" hidden></div>
+  <div class="layout">
+    <aside class="side">
+      <details class="tocbox"><summary>この中の章</summary><nav class="toc" aria-label="この中の章"></nav></details>
+    </aside>
+    <main>
+      <div class="newnav" hidden><span><span class="new">日付</span> = 最近足した所(<b class="newcount"></b>か所)</span><button type="button" class="newnext">次の「新」へ ↓</button></div>
+      <article class="doc"></article>
+      <div class="results" hidden></div>
+    </main>
+  </div>
   <p class="foot">非公式の個人メモです。ゲームの数値はパッチで変わります。内容は出典の動画やサイトの説明をまとめたもので、すべてをゲーム内で確かめたわけではありません。</p>
 </div>
 <button class="totop" type="button" hidden>↑ 上へ</button>
@@ -103,7 +139,8 @@ mark { background: var(--mark); color: #fff; border-radius: 2px; padding: 0 1px;
 const GUIDE = /*__GUIDE_DATA__*/{"built":"","docs":[]};
 const DOCS = GUIDE.docs;
 const $ = s => document.querySelector(s);
-const tabsEl = $('.tabs'), docEl = $('.doc'), tocEl = $('.toc'), resEl = $('.results'), qEl = $('#q');
+const tabsEl = $('.tabs'), docEl = $('.doc'), tocEl = $('.toc'), sideEl = $('.side'), resEl = $('.results'), qEl = $('#q');
+const newNav = $('.newnav'), wide = matchMedia('(min-width: 980px)');
 let current = null;
 
 $('#built').textContent = GUIDE.built ? '(更新: ' + GUIDE.built + ')' : '';
@@ -129,16 +166,28 @@ function show(id, headingIndex) {
   const d = DOCS.find(x => x.id === id) || DOCS[0];
   current = d.id;
   for (const b of tabsEl.children) b.setAttribute('aria-selected', b.dataset.id === d.id ? 'true' : 'false');
-  resEl.hidden = true; docEl.hidden = false; tocEl.hidden = false;
+  resEl.hidden = true; docEl.hidden = false; sideEl.hidden = false;
   docEl.innerHTML = render(d.md);
 
   // Headings get stable ids in document order; the search uses the same order.
   const hs = docEl.querySelectorAll('h1, h2, h3, h4');
   hs.forEach((h, i) => { h.id = d.id + '-' + i; if (h.tagName === 'H2' && /結論|今の|まず/.test(h.textContent)) h.classList.add('key'); });
   tocEl.innerHTML = '';
-  docEl.querySelectorAll('h2').forEach(h => {
+  docEl.querySelectorAll('h2, h3').forEach(h => {
     const a = document.createElement('a'); a.href = '#' + d.id + '/' + h.id.split('-').pop();
+    if (h.tagName === 'H3') a.className = 'sub';
+    a.dataset.target = h.id;
     a.textContent = h.textContent.replace(/[((].*?[))]/g, '').trim(); tocEl.appendChild(a);
+  });
+  $('.tocbox').open = wide.matches;
+
+  // Source lists are long and rarely read: fold everything under a 出典 heading.
+  docEl.querySelectorAll('h2').forEach(h => {
+    if (!/出典/.test(h.textContent)) return;
+    const box = document.createElement('details'); box.className = 'fold';
+    box.innerHTML = '<summary>出典の表を開く</summary>';
+    while (h.nextElementSibling && h.nextElementSibling.tagName !== 'H2') box.appendChild(h.nextElementSibling);
+    h.after(box);
   });
 
   // Wide tables scroll inside their own box instead of widening the page.
@@ -155,15 +204,60 @@ function show(id, headingIndex) {
     if (target) { const a = document.createElement('a'); a.href = '#' + target.id; a.className = 'tab-link'; a.textContent = target.title; c.replaceWith(a); }
   });
 
-  $('.legend-new').hidden = !markNew(docEl);
+  const nNew = markNew(docEl);
+  newNav.hidden = !nNew; $('.newcount').textContent = nNew;
   try { localStorage.setItem('guide-tab', d.id); } catch (e) {}
 
   if (headingIndex != null) {
     const h = document.getElementById(d.id + '-' + headingIndex);
-    if (h) { h.scrollIntoView({ block: 'start' }); h.classList.add('flash'); return; }
+    if (h) {
+      const fold = h.closest('details.fold'); if (fold) fold.open = true;
+      h.scrollIntoView({ block: 'start' }); h.classList.add('flash'); spy(); return;
+    }
   }
   window.scrollTo({ top: 0 });
+  spy();
 }
+
+// Highlight the chapter being read in the side list.
+function spy() {
+  if (docEl.hidden) return;
+  let here = null;
+  for (const a of tocEl.children) {
+    const h = document.getElementById(a.dataset.target);
+    if (h && h.getBoundingClientRect().top < 140) here = a;
+  }
+  for (const a of tocEl.children) a.classList.toggle('here', a === here);
+  if (here && wide.matches) {
+    const r = here.getBoundingClientRect(), s = sideEl.getBoundingClientRect();
+    if (r.top < s.top || r.bottom > s.bottom) here.scrollIntoView({ block: 'nearest' });
+  }
+}
+
+// Jump to the next "new" mark below the current position, wrapping to the first one.
+$('.newnext').addEventListener('click', () => {
+  const marks = [...docEl.querySelectorAll('.new')];
+  if (!marks.length) return;
+  const next = marks.find(m => m.getBoundingClientRect().top > 150) || marks[0];
+  const fold = next.closest('details.fold'); if (fold) fold.open = true;
+  next.scrollIntoView({ block: 'center' });
+  next.classList.remove('flash'); void next.offsetWidth; next.classList.add('flash');
+});
+
+// Text size, remembered per browser.
+function setFs(v) {
+  document.documentElement.style.setProperty('--fs', v);
+  for (const b of document.querySelectorAll('.fs button')) b.setAttribute('aria-pressed', b.dataset.fs === v ? 'true' : 'false');
+}
+document.querySelectorAll('.fs button').forEach(b => b.addEventListener('click', () => {
+  setFs(b.dataset.fs); try { localStorage.setItem('guide-fs', b.dataset.fs); } catch (e) {}
+}));
+let savedFs = null; try { savedFs = localStorage.getItem('guide-fs'); } catch (e) {}
+setFs(savedFs || '16px');
+
+// On narrow screens the chapter list folds away after a pick.
+tocEl.addEventListener('click', () => { if (!wide.matches) $('.tocbox').open = false; });
+wide.addEventListener('change', () => { $('.tocbox').open = wide.matches; });
 
 // Wrap dates like "(10/25" or "10/25 追加" written on the build day or the day before.
 // Returns how many were marked.
@@ -200,13 +294,17 @@ function route() {
 
 const topBtn = $('.totop');
 topBtn.addEventListener('click', () => window.scrollTo({ top: 0 }));
-window.addEventListener('scroll', () => { topBtn.hidden = window.scrollY < 800; }, { passive: true });
+let spyFrame = 0;
+window.addEventListener('scroll', () => {
+  topBtn.hidden = window.scrollY < 800;
+  if (!spyFrame) spyFrame = requestAnimationFrame(() => { spyFrame = 0; spy(); });
+}, { passive: true });
 
 // Search: every line of every note, grouped under the heading it belongs to.
 function search(q) {
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);
   if (!words.length) { show(current || DOCS[0].id); return; }
-  docEl.hidden = true; tocEl.hidden = true; resEl.hidden = false;
+  docEl.hidden = true; sideEl.hidden = true; newNav.hidden = true; resEl.hidden = false;
   const hits = [];
   for (const d of DOCS) {
     let hIndex = -1, hText = d.title;
