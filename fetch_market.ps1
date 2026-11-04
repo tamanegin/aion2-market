@@ -303,8 +303,11 @@ $rows = foreach ($k in $obs.Keys) {
     $asLowSig = $null -ne $vsAsia -and $vsAsia -le -20; $asHighSig = $null -ne $vsAsia -and $vsAsia -ge 25
     $cheap = ($dropSig -or $asLowSig) -and -not ($jumpSig -or $asHighSig)
     $dear  = ($jumpSig -or $asHighSig) -and -not ($dropSig -or $asLowSig)
-    $rise  = ($null -ne $earlyCh3 -and $earlyCh3 -ge 10 -and ($null -eq $ch3 -or $ch3 -lt $earlyCh3 - 10))
-    $fall  = ($null -ne $earlyCh3 -and $earlyCh3 -le -10 -and ($null -eq $ch3 -or $ch3 -gt $earlyCh3 + 10))
+    # Likely to rise/fall: a 3-day move of 10% or more tends to reverse (same finding as the
+    # outlook below). Until 2026-11-04 this followed the early-access servers, which the
+    # forecast log showed moving the opposite way.
+    $rise  = $null -ne $ch3 -and $ch3 -le -10
+    $fall  = $null -ne $ch3 -and $ch3 -ge 10
 
     $verdict = if (-not $price) { '出品なし' }
                elseif ($cheap -and -not $fall) { '買い時' }
@@ -317,7 +320,7 @@ $rows = foreach ($k in $obs.Keys) {
     $sign = { param($v) $(if ($v -gt 0) { '+' } else { '' }) + [math]::Round($v) + '%' }
     if ($dropSig -or $jumpSig) { $why += ('3日で{0}(他サーバーは{1})' -f (& $sign $ch3), $(if ($null -ne $asiaCh3) { & $sign $asiaCh3 } else { '不明' })) }
     if ($null -ne $vsAsia -and [math]::Abs($vsAsia) -ge 20) { $why += ('他サーバーより{0}%{1}' -f [math]::Round([math]::Abs($vsAsia)), $(if ($vsAsia -lt 0) { '安い' } else { '高い' })) }
-    if ($rise -or $fall) { $why += ('先行サーバーで3日{0}' -f (& $sign $earlyCh3)) }
+    if (($rise -or $fall) -and -not ($dropSig -or $jumpSig)) { $why += ('3日で{0}(戻りやすい)' -f (& $sign $ch3)) }
     if ($price -and $listings -lt 3) { $why += '出品が少なく参考程度' }
 
     # Outlook for the next few days: Ariel's own 3-day move tends to reverse. Checked on
