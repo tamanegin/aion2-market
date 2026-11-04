@@ -320,16 +320,16 @@ $rows = foreach ($k in $obs.Keys) {
     if ($rise -or $fall) { $why += ('先行サーバーで3日{0}' -f (& $sign $earlyCh3)) }
     if ($price -and $listings -lt 3) { $why += '出品が少なく参考程度' }
 
-    # Outlook for the next few days: early-access servers lead by days (heaviest weight),
-    # gaps to the other Asia servers tend to close, and the Asia-wide 3-day trend carries on.
-    # Each term is capped at +-30 so one extreme listing cannot decide it alone.
+    # Outlook for the next few days: Ariel's own 3-day move tends to reverse. Checked on
+    # 2026-11-04 against 1,124 logged pairs: own 3-day move correlated -0.46 with the next
+    # 3 days, the gap to other servers -0.35, and the early-server and Asia-wide moves -0.17
+    # (the old weights used those two with a plus sign and hit 27%; this rule hit 59% on the
+    # later half). Capped at +-30 so one extreme listing cannot decide it alone.
     $cap = { param($v) [math]::Max(-30, [math]::Min(30, $v)) }
     $terms = @()
-    if ($null -ne $earlyCh3) { $terms += , @((& $cap (0.6 * $earlyCh3)), ('先行サーバーが3日で{0}' -f (& $sign $earlyCh3))) }
-    if ($null -ne $vsAsia)   { $terms += , @((& $cap (-0.3 * $vsAsia)), ('他サーバーより{0}{1}(差は縮まりやすい)' -f [math]::Round([math]::Abs($vsAsia)), $(if ($vsAsia -lt 0) { '%安い' } else { '%高い' }))) }
-    if ($null -ne $asiaCh3)  { $terms += , @((& $cap (0.2 * $asiaCh3)), ('アジア全体が3日で{0}' -f (& $sign $asiaCh3))) }
+    if ($null -ne $ch3) { $terms += , @((& $cap (-0.6 * $ch3)), ('3日で{0}(戻りやすい)' -f (& $sign $ch3))) }
     $score = 0.0; foreach ($tm in $terms) { $score += $tm[0] }
-    $fcShort = if (-not $price -or -not $terms) { '' } elseif ($score -ge 8) { '上がる' } elseif ($score -le -8) { '下がる' } else { '横ばい' }
+    $fcShort = if (-not $price -or -not $terms) { '' } elseif ($score -ge 4) { '上がる' } elseif ($score -le -4) { '下がる' } else { '横ばい' }
     $fcShortWhy = (@($terms | Where-Object { [math]::Abs($_[0]) -ge 3 } | Sort-Object { -[math]::Abs($_[0]) } | ForEach-Object { $_[1] })) -join ' / '
 
     # Outlook for about a month: what the Korean server did at the same stage.
@@ -364,8 +364,9 @@ $rows = foreach ($k in $obs.Keys) {
 $rows = @($rows | Sort-Object { $_.section }, { $_.kind }, { $_.tier }, { $_.name })
 
 # --- Forecast log: check the short-term outlook 3 days later -----------------------------
-# Each full run (every 6 hours) adds every item's price, score and the three inputs
-# (early-access 3-day move, gap to the other Asia servers, Asia-wide 3-day move); 9 days are
+# Each full run (every 6 hours) adds every item's price, score and four inputs
+# (early-access 3-day move, gap to the other Asia servers, Asia-wide 3-day move, Ariel's own
+# 3-day move; only the last one is in the score now, the others are kept to re-check); 9 days are
 # kept. Each entry is then compared with the entry about 72 hours later: "up" is right when
 # the price rose 3% or more, "down" when it fell 3% or more, "flat" when it moved less.
 $logFile = Join-Path $outDir 'forecast_log.json'
@@ -374,7 +375,7 @@ if (Test-Path $logFile) { try { $log = @((Get-Content -Raw -Encoding UTF8 $logFi
 $capUtc = ConvertTo-Utc $capturedAt
 if ($doFull -and $capUtc) {
     $snap = [ordered]@{}
-    foreach ($r in $rows) { if ($r.price -and $r.fc_short) { $snap[[string]$r.key] = @($r.price, $r.fc_score, $r.early_ch3, $r.vs_asia, $r.asia_ch3) } }
+    foreach ($r in $rows) { if ($r.price -and $r.fc_short) { $snap[[string]$r.key] = @($r.price, $r.fc_score, $r.early_ch3, $r.vs_asia, $r.asia_ch3, $r.ch3) } }
     $log += [pscustomobject]@{ at = $capUtc.ToString('o'); p = [pscustomobject]$snap }
 }
 $log = @($log | Where-Object { $capUtc -and ($capUtc - (ConvertTo-Utc $_.at)).TotalDays -le 9 })
@@ -390,7 +391,9 @@ foreach ($e in $log) {
         $then = $pr.Value; $now3 = $later.p.($pr.Name)
         if (-not $now3 -or -not $then[0]) { continue }
         $move = ($now3[0] - $then[0]) / $then[0] * 100
-        $side = if ($then[1] -ge 8) { 'up' } elseif ($then[1] -le -8) { 'down' } else { 'flat' }
+        # Entries with 6 values use the 2026-11-04 rule (threshold 4); older ones were made with 8.
+        $th = if ($then.Count -gt 5) { 4 } else { 8 }
+        $side = if ($then[1] -ge $th) { 'up' } elseif ($then[1] -le -$th) { 'down' } else { 'flat' }
         $check["${side}_n"]++
         $hit = switch ($side) { 'up' { $move -ge 3 } 'down' { $move -le -3 } default { [math]::Abs($move) -lt 3 } }
         if ($hit) { $check["${side}_hit"]++ }
