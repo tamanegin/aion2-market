@@ -23,14 +23,34 @@ permissions:
   pages: write
   id-token: write
 
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
 jobs:
+  # A run that GitHub never starts keeps the "pages" group and blocks every later run
+  # (run #164 sat in "queued" for a day on 2026-11-12). This job is outside the group,
+  # so it still runs and force-cancels such runs; the newest waiting run then goes ahead.
+  unstick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel runs stuck in the queue for over 30 minutes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cutoff=$(date -u -d '30 minutes ago' +%Y-%m-%dT%H:%M:%SZ)
+          gh api "repos/${{ github.repository }}/actions/workflows/update.yml/runs?status=queued&per_page=50" \
+            --jq ".workflow_runs[] | select(.status == \"queued\" and .id != ${{ github.run_id }} and .created_at < \"$cutoff\") | .id" |
+          while read -r id; do
+            echo "Force-cancelling stuck run $id"
+            gh api -X POST "repos/${{ github.repository }}/actions/runs/$id/force-cancel" || echo "Could not cancel $id"
+          done
+
   update:
     runs-on: ubuntu-latest
     timeout-minutes: 40   # a full refresh of every server can take 15-20 minutes on GitHub
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
