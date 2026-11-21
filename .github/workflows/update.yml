@@ -69,7 +69,13 @@ jobs:
         id: fetch
         shell: pwsh
         run: |
-          if ('${{ inputs.full }}' -eq 'true') { ./fetch_market.ps1 -Full } else { ./fetch_market.ps1 }
+          # Surface the error as an annotation: annotations are readable without signing in, logs are not.
+          try {
+            if ('${{ inputs.full }}' -eq 'true') { ./fetch_market.ps1 -Full } else { ./fetch_market.ps1 }
+          } catch {
+            Write-Output "::error title=Fetch prices::$($_.Exception.Message)"
+            exit 1
+          }
 
       - name: Upload site
         if: steps.fetch.outputs.changed == 'true' || github.event_name != 'schedule'
