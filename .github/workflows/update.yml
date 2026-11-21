@@ -70,11 +70,13 @@ jobs:
         shell: pwsh
         run: |
           # Surface the error as an annotation: annotations are readable without signing in, logs are not.
+          # A failed fetch leaves the previous data in data/ (the script writes only at the end), so a
+          # push still deploys the guide; the run is marked failed in the last step.
           try {
             if ('${{ inputs.full }}' -eq 'true') { ./fetch_market.ps1 -Full } else { ./fetch_market.ps1 }
           } catch {
             Write-Output "::error title=Fetch prices::$($_.Exception.Message)"
-            exit 1
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "failed=true"
           }
 
       - name: Upload site
@@ -87,3 +89,7 @@ jobs:
         id: deploy
         if: steps.fetch.outputs.changed == 'true' || github.event_name != 'schedule'
         uses: actions/deploy-pages@v4
+
+      - name: Report a failed fetch
+        if: steps.fetch.outputs.failed == 'true'
+        run: exit 1
