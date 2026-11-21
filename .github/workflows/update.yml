@@ -55,7 +55,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Get the data now on the site
         run: |
@@ -73,7 +73,7 @@ jobs:
 
       - name: Upload site
         if: steps.fetch.outputs.changed == 'true' || github.event_name != 'schedule'
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: .
 
