@@ -85,9 +85,20 @@ jobs:
         with:
           path: .
 
+      # deploy-pages sometimes cannot see the artifact uploaded a moment ago ("No artifacts named
+      # github-pages"); waiting a minute and deploying again usually works.
       - name: Deploy site
         id: deploy
         if: steps.fetch.outputs.changed == 'true' || github.event_name != 'schedule'
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+
+      - name: Wait before retrying the deploy
+        if: steps.deploy.outcome == 'failure'
+        run: sleep 60
+
+      - name: Deploy site (retry)
+        if: steps.deploy.outcome == 'failure'
         uses: actions/deploy-pages@v4
 
       - name: Report a failed fetch
